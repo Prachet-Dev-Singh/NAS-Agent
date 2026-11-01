@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nas-agent"
+version = "0.1.0"
+description = "LLM-driven, constraint-aware neural architecture search agent"
+requires-python = ">=3.11"
+dependencies = [
+    "torch>=2.2",
+    "pydantic>=2.6",
+    "langgraph>=0.1",
+    "langchain-core>=0.2",
+    "scipy>=1.12",          # hypervolume indicator
+    "numpy>=1.26",
+    "pyyaml>=6.0",
+    "tqdm>=4.66",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-timeout>=2.3",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+timeout = 120

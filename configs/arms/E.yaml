@@ -1,0 +1,7 @@
+arm: E
+name: "LLM Raw In-Context History"
+description: "LLM Optimizer ablation receiving raw chronological table of last 40 evaluated candidates without SQL aggregation"
+provider: "openrouter"
+model: "google/gemini-2.0-flash-exp:free"
+temperature: 0.7
+history_window: 40

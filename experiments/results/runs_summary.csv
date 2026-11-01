@@ -1,0 +1,2 @@
+run_name,arm,seed,total_candidates,total_gpu_seconds,hv_25,hv_50,hv_100,acc_25,acc_50,acc_100,time_to_tau,validity_rate,pareto_count,llm_calls,total_tokens,tokens_per_pareto
+run_A_s42_20261101_154913,A,42,2,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,0.0,0,0,0,0

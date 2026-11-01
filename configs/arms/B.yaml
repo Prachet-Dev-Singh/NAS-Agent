@@ -1,0 +1,5 @@
+arm: B
+name: "Regularized Evolution"
+description: "Regularized (Aging) Evolution baseline (Real et al., 2019)"
+population_size: 10
+tournament_size: 3

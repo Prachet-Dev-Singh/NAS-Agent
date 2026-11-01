@@ -1,0 +1,9 @@
+arm: D
+name: "Full NAS-Agent"
+description: "Full LLM Agent with structured SQLite Pareto memory, near-feasible checkpoints, and technique statistics"
+provider: "openrouter"
+model: "google/gemini-2.0-flash-exp:free"
+temperature: 0.7
+pareto_limit: 12
+near_feasible_limit: 6
+technique_window: 15

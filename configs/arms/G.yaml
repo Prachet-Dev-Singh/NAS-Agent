@@ -1,0 +1,7 @@
+arm: G
+name: "Thompson-Sampling Contextual Bandit"
+description: "Contextual Multi-Armed Bandit over 8 mutation operators without LLM (Beta-Bernoulli with gamma = 0.95)"
+discount: 0.95
+cost_ema_alpha: 0.10
+prior_macro_cost: 90.0
+prior_micro_cost: 45.0

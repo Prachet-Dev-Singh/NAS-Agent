@@ -1,0 +1,4 @@
+arm: A
+name: "Random Search"
+description: "Uniform Random Search baseline (proposes random macro topologies and random micro surgery)"
+micro_prob: 0.25
