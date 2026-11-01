@@ -84,7 +84,7 @@ def run_experiment(
     arm_cfg = load_arm_config(arm)
     llm_provider = provider or arm_cfg.get("provider", "mock")
     if llm_provider == "groq":
-        llm_model = model or "llama-3.3-70b-versatile"
+        llm_model = model or "openai/gpt-oss-120b"
     else:
         llm_model = model or arm_cfg.get("model", "google/gemini-2.0-flash-exp:free")
 
@@ -115,7 +115,14 @@ def run_experiment(
 
     executor_extra_args = []
     if mock_data:
-        executor_extra_args.append("--mock-data")
+        executor_extra_args.extend([
+            "--mock-data",
+            "--epochs", "2",
+            "--batch-size", "64",
+            "--subset-size", "256",
+            "--val-size", "128",
+            "--warmup-epochs", "1",
+        ])
 
     executor = LocalExecutor(device=device, default_extra_args=executor_extra_args)
     bandit = ContextualBanditProposer(
