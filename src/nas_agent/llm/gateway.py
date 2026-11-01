@@ -123,12 +123,14 @@ class LLMGateway:
         payload: Dict[str, Any] = {}
         endpoint = ""
 
-        if self.provider in ("openrouter", "openai"):
+        if self.provider in ("openrouter", "openai", "groq"):
             headers["Authorization"] = f"Bearer {self.api_key}"
             if self.provider == "openrouter":
                 endpoint = "https://openrouter.ai/api/v1/chat/completions"
                 headers["HTTP-Referer"] = "https://github.com/nas-agent"
                 headers["X-Title"] = "NAS-Agent"
+            elif self.provider == "groq":
+                endpoint = "https://api.groq.com/openai/v1/chat/completions"
             else:
                 endpoint = "https://api.openai.com/v1/chat/completions"
 
@@ -157,7 +159,7 @@ class LLMGateway:
                 resp = requests.post(endpoint, headers=headers, json=payload, timeout=60.0)
                 if resp.status_code == 200:
                     data = resp.json()
-                    if self.provider in ("openrouter", "openai"):
+                    if self.provider in ("openrouter", "openai", "groq"):
                         content = data["choices"][0]["message"]["content"]
                         usage = data.get("usage", {})
                         t_in = usage.get("prompt_tokens", 0)

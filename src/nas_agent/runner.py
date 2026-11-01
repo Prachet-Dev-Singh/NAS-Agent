@@ -77,7 +77,10 @@ def run_experiment(
     # Load arm specifics
     arm_cfg = load_arm_config(arm)
     llm_provider = provider or arm_cfg.get("provider", "mock")
-    llm_model = model or arm_cfg.get("model", "google/gemini-2.0-flash-exp:free")
+    if llm_provider == "groq":
+        llm_model = model or "llama-3.3-70b-versatile"
+    else:
+        llm_model = model or arm_cfg.get("model", "google/gemini-2.0-flash-exp:free")
 
     # If no API key is present in environment for non-mock provider, warn and fall back
     if llm_provider != "mock":
@@ -182,7 +185,7 @@ def main() -> None:
     parser.add_argument("--run-id", type=str, default=None, help="Explicit run ID")
     parser.add_argument("--budget-seconds", type=float, default=7200.0, help="Total GPU seconds budget")
     parser.add_argument("--max-iterations", type=int, default=120, help="Max iterations cutoff")
-    parser.add_argument("--provider", type=str, default=None, help="LLM provider (mock, openrouter, openai, gemini)")
+    parser.add_argument("--provider", type=str, default=None, choices=["mock", "openrouter", "openai", "gemini", "groq"], help="LLM provider (mock, openrouter, openai, gemini, groq)")
     parser.add_argument("--model", type=str, default=None, help="Model identifier")
     parser.add_argument("--device", type=str, default=None, help="Device (cuda/cpu)")
     parser.add_argument("--mock-data", action="store_true", help="Use synthetic data for fast local testing")

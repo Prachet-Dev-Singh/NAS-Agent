@@ -117,3 +117,12 @@ def test_gateway_exhausted_repair_fallback():
         assert audit["fallback"] is True
         assert audit["repair_count"] == 2
         assert "Fallback proposal" in prop.rationale
+
+
+def test_gateway_groq_configuration():
+    """Verify Groq provider initializes with proper settings."""
+    gw = LLMGateway(provider="groq", model="llama-3.3-70b-versatile", api_key="gsk_test_123")
+    assert gw.provider == "groq"
+    assert gw.model == "llama-3.3-70b-versatile"
+    assert gw.api_key == "gsk_test_123"
+
