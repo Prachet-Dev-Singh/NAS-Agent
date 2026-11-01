@@ -19,6 +19,12 @@ import os
 import sys
 from typing import Any, Dict, Optional
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 import yaml
 from langgraph.checkpoint.memory import MemorySaver
 

@@ -26,6 +26,12 @@ import time
 import uuid
 from typing import Any, Dict, Optional, Tuple, Union
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 import requests
 from pydantic import ValidationError
 

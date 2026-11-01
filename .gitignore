@@ -52,3 +52,8 @@ data/
 .idea/
 *.swp
 *.swo
+
+# Environment variables & secrets
+.env
+.env.*
+
