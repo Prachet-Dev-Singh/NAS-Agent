@@ -45,8 +45,13 @@ def sample_random_macro_proposal(rng: random.Random) -> MacroProposal:
     current_width = s0_width
 
     for s_idx in range(1, num_stages):
-        # Allow any block type in later stages
-        block = rng.choice(ALL_BLOCKS)
+        # Stage 1 resolution is 16x16: use conv, dwsep, resnet, or attn_lite
+        # Stage 2+ resolution is downsampled (8x8, 4x4): all blocks including ssm are allowed
+        if s_idx < 2:
+            allowed_blocks = ["conv", "dwsep", "resnet", "attn_lite"]
+        else:
+            allowed_blocks = list(ALL_BLOCKS)
+        block = rng.choice(allowed_blocks)
         # Ensure monotonic or non-decreasing width trend typical of vision networks
         avail_widths = [w for w in VALID_WIDTHS if w >= current_width]
         if not avail_widths:
@@ -58,9 +63,15 @@ def sample_random_macro_proposal(rng: random.Random) -> MacroProposal:
         max_d = min(5, remaining_depth_budget - (num_stages - 1 - s_idx))
         max_d = max(1, max_d)
         depth = rng.randint(1, max_d)
-        remaining_depth_budget -= depth
 
         expand = rng.choice([1, 2, 3, 4])
+        if block == "ssm":
+            depth = min(depth, 2)
+            expand = min(expand, 2)
+        elif block == "attn_lite":
+            depth = min(depth, 3)
+
+        remaining_depth_budget -= depth
         stride = 2  # Standard downsampling transition
 
         stages.append(
