@@ -154,7 +154,8 @@ def evaluate(
 
     with torch.no_grad():
         for bx, by in val_loader:
-            bx, by = bx.to(device), by.to(device)
+            bx = bx.to(device)
+            by = by.to(device=device, dtype=torch.long)
             logits = model(bx)
             loss = F.cross_entropy(logits, by)
             preds = logits.argmax(dim=-1)
@@ -334,7 +335,8 @@ def run_worker(args: argparse.Namespace) -> None:
         running_samples = 0
 
         for bx, by in train_loader:
-            bx, by = bx.to(device), by.to(device)
+            bx = bx.to(device)
+            by = by.to(device=device, dtype=torch.long)
             optimizer.zero_grad(set_to_none=True)
 
             with torch.amp.autocast("cuda", enabled=use_amp, dtype=torch.float16):

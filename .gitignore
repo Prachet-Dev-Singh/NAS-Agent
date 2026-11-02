@@ -39,6 +39,7 @@ htmlcov/
 
 # Local / Run Artifacts & Cache
 experiments/runs/
+experiments/archive/
 experiments/llm_cache/
 *.db
 *.db-wal

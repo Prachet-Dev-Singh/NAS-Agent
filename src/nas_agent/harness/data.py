@@ -304,11 +304,11 @@ def get_cifar10_data(
     # Stratified selection
     train_idx = get_stratified_subset_indices(train_labels_all, subset_size, seed=seed)
     train_imgs = train_imgs_all[train_idx]
-    train_lbls = torch.from_numpy(train_labels_all[train_idx])
+    train_lbls = torch.from_numpy(train_labels_all[train_idx]).to(torch.long)
 
     val_idx = get_stratified_subset_indices(test_labels_all, val_size, seed=seed)
     val_imgs = test_imgs_all[val_idx]
-    val_lbls = torch.from_numpy(test_labels_all[val_idx])
+    val_lbls = torch.from_numpy(test_labels_all[val_idx]).to(torch.long)
 
     # Save cache for fast subsequent loads
     torch.save({"images": train_imgs, "labels": train_lbls}, cache_train_path)
