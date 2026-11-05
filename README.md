@@ -100,22 +100,25 @@ python -m nas_agent.runner --arm G --provider groq --budget-seconds 600 --device
 
 The full 6-arm headline benchmark evaluated on real CIFAR-10 data under equal GPU-second budgets:
 
-| Arm | Description | Best Acc @ 100% | Time to $\tau$ (s) | Pareto Count | Validity % | LLM Calls |
-|:---:|:---|:---:|:---:|:---:|:---:|:---:|
-| **Arm D** | **Full NAS-Agent (Groq LLM + Surgical Surgery)** | **74.72%** | **234s** | **2** | **33.3%** | **6** |
-| **Arm B** | Aging Evolution Baseline | 72.74% | N/A | 2 | 66.7% | 0 |
-| **Arm G** | Thompson-Sampling Contextual Bandit | 72.32% | N/A | 1 | 100.0% | 0 |
-| **Arm E** | LLM Raw In-Context History Ablation | 72.14% | N/A | 2 | 33.3% | 6 |
-| **Arm A** | Random Search Baseline | 66.66% | N/A | 1 | 66.7% | 0 |
-| **Arm C** | Stateless LLM (No-Memory Ablation) | 0.00% | N/A | 0 | 0.0% | 6 |
+> Accuracies are strictly computed over **feasible candidates** passing all parameter and MAC caps.
+> Time to $\tau$ measures wall-clock GPU seconds to reach the calibrated quality threshold ($\tau = 72.96\%$).
+
+| Arm | Description | Feasible Val Acc | Feasible Test Acc | Time to $\tau=72.96\%$ (s) | Feasible / Total | Validity % | Pareto Count | LLM Calls |
+|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Arm D** | **Full NAS-Agent (Groq LLM + Surgery)** | **74.72%** | **74.48%** | **234s** | 2 / 6 | **33.3%** | **2** | **6** |
+| **Arm B** | Aging Evolution Baseline | 72.74% | 72.71% | N/A | 2 / 3 | 66.7% | 2 | 0 |
+| **Arm G** | Thompson-Sampling Contextual Bandit | 72.32% | 72.31% | N/A | 6 / 6 | 100.0% | 1 | 0 |
+| **Arm E** | LLM Raw In-Context History Ablation | 72.14% | 72.11% | N/A | 2 / 6 | 33.3% | 2 | 6 |
+| **Arm A** | Random Search Baseline | 66.66% | 66.68% | N/A | 2 / 3 | 66.7% | 1 | 0 |
+| **Arm C** | Stateless LLM (No-Memory Ablation) | 0.00% | 0.00% | N/A | 0 / 6 | 0.0% | 0 | 6 |
 
 ![Anytime Feasible Hypervolume](experiments/results/hypervolume_curves.png)
 
 ### Key Scientific Takeaways:
-1. **Arm D Dominates the Benchmark:** Discovered the highest-accuracy model (**74.72%**), outperforming Random Search (+8.06%), Contextual Bandits (+2.40%), and Aging Evolution (+1.98%).
-2. **First and Only to Reach Convergence Threshold:** Arm D was the **only arm to reach quality threshold $\tau$**, doing so in just **234 GPU-seconds**.
-3. **Structured Memory vs. Raw History (Arm D vs. Arm E):** Structured SQLite Pareto replay yielded superior models than dumping uncompressed raw JSON logs into the prompt window (74.72% vs. 72.14%).
-4. **Failure of Memoryless LLMs (Arm C):** An LLM without structured memory repeatedly fell into duplicate proposals and divergent topologies, confirming the necessity of structured state management in generative agents.
+1. **Arm D Discovers Top Generalizing Architecture (74.48% Test Accuracy):** Evaluated on the untouched 10,000-image CIFAR-10 test set, Arm D's top model (`cand_D_run_D__004`) achieved **74.48% test accuracy** (74.72% val), outperforming Random Search (+7.80%), Contextual Bandits (+2.17%), and Aging Evolution (+1.77%).
+2. **First and Only to Reach Convergence Threshold:** Arm D was the **only arm to reach quality threshold $\tau = 72.96\%$**, doing so in just **234 GPU-seconds**.
+3. **Structured Memory vs. Raw History (Arm D vs. Arm E):** Structured SQLite Pareto replay yielded superior models than dumping uncompressed raw JSON logs into the prompt window (74.48% vs. 72.11% test accuracy).
+4. **Deterministic Failure of Memoryless LLMs (Arm C):** With zero memory of past trials, Groq repeated identical proposals across iterations (4 consecutive duplicate detections) and diverged, proving that structured state tracking is necessary for autonomous generative agents.
 
 ---
 

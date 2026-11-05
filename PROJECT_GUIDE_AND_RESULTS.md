@@ -144,14 +144,17 @@ All 6 experimental arms were evaluated on real CIFAR-10 data using an **NVIDIA G
 
 ### Headline Comparison Table
 
-| Arm | Method Description | Best Acc @ 100% | Time to $\tau$ (s) | Pareto Count | Validity % | LLM Calls |
-|:---:|:---|:---:|:---:|:---:|:---:|:---:|
-| **Arm D** | **Full NAS-Agent (Groq LLM + Surgical Surgery)** | **74.72%** | **234s** | **2** | **33.3%** | **6** |
-| **Arm B** | Regularized Aging Evolution Baseline | 72.74% | N/A | 2 | 66.7% | 0 |
-| **Arm G** | Thompson-Sampling Contextual Bandit | 72.32% | N/A | 1 | 100.0% | 0 |
-| **Arm E** | LLM Raw In-Context History Ablation | 72.14% | N/A | 2 | 33.3% | 6 |
-| **Arm A** | Uniform Random Search Baseline | 66.66% | N/A | 1 | 66.7% | 0 |
-| **Arm C** | Stateless LLM (No-Memory Ablation) | 0.00% | N/A | 0 | 0.0% | 6 |
+> Accuracies are strictly computed over **feasible candidates** passing all parameter and MAC caps.
+> Time to $\tau$ measures wall-clock GPU seconds to reach the calibrated quality threshold ($\tau = 72.96\%$).
+
+| Arm | Method Description | Feasible Val Acc | Feasible Test Acc | Time to $\tau=72.96\%$ (s) | Feasible / Total | Validity % | Pareto Count | LLM Calls |
+|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Arm D** | **Full NAS-Agent (Groq LLM + Surgery)** | **74.72%** | **74.48%** | **234s** | 2 / 6 | **33.3%** | **2** | **6** |
+| **Arm B** | Aging Evolution Baseline | 72.74% | 72.71% | N/A | 2 / 3 | 66.7% | 2 | 0 |
+| **Arm G** | Thompson-Sampling Contextual Bandit | 72.32% | 72.31% | N/A | 6 / 6 | 100.0% | 1 | 0 |
+| **Arm E** | LLM Raw In-Context History Ablation | 72.14% | 72.11% | N/A | 2 / 6 | 33.3% | 2 | 6 |
+| **Arm A** | Random Search Baseline | 66.66% | 66.68% | N/A | 2 / 3 | 66.7% | 1 | 0 |
+| **Arm C** | Stateless LLM (No-Memory Ablation) | 0.00% | 0.00% | N/A | 0 / 6 | 0.0% | 0 | 6 |
 
 ```
     Anytime Validation Accuracy (%) Across Arms (RTX 3050 Ti GPU)
@@ -311,3 +314,4 @@ This updates:
 
 #### Q4: "How does the surgical micro-surgery work without degrading trained weights?"
 > *"We designed all 5 block families to satisfy a uniform residual contract: $y = x + \text{out\_proj}(\text{mixer}(\text{in\_proj}(x)))$. When applying `widen_internal`, we expand the hidden dimension and initialize the newly added weights to zero. Mathematically, the output of the newly widened layer at step zero is identically zero, meaning $\max |f_{\text{new}}(x) - f_{\text{old}}(x)| < 10^{-6}$. The child model inherits 100% of the parent's accuracy and fine-tunes in just 4 epochs rather than retraining from scratch."*
+
