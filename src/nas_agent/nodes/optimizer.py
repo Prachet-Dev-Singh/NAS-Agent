@@ -134,6 +134,7 @@ class OptimizerNode:
                 user_prompt=user_prompt,
                 run_id=run_id,
                 store=self.store,
+                salt=candidate_id,
             )
             proposal_dict = proposal.model_dump()
             new_llm_calls = 1

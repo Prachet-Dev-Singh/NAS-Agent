@@ -61,7 +61,7 @@ pip install -e .
 ```
 
 ### Run Comprehensive Test Suite
-The repository includes **281 automated unit and integration tests** covering all 8 phases:
+The repository includes **282 automated unit and integration tests** covering all 8 phases:
 ```bash
 python -m pytest tests/ -v
 ```
@@ -98,19 +98,21 @@ python -m nas_agent.runner --arm G --provider groq --budget-seconds 600 --device
 
 ## 6. Empirical Benchmark Results (NVIDIA RTX 3050 Ti GPU)
 
-The full 6-arm headline benchmark evaluated on real CIFAR-10 data under equal GPU-second budgets:
+### Headline Benchmark Results (NVIDIA RTX 3050 Ti GPU)
 
-> Accuracies are strictly computed over **feasible candidates** passing all parameter and MAC caps.
-> Time to $\tau$ measures wall-clock GPU seconds to reach the calibrated quality threshold ($\tau = 72.96\%$).
+The full 6-arm headline benchmark evaluated on real CIFAR-10 data under calibrated hardware constraints ($\le 8.38\text{M}$ params, $\le 1.28\text{ GMACs}$):
 
-| Arm | Description | Feasible Val Acc | Feasible Test Acc | Time to $\tau=72.96\%$ (s) | Feasible / Total | Validity % | Pareto Count | LLM Calls |
-|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Arm D** | **Full NAS-Agent (Groq LLM + Surgery)** | **73.51% (Peak: 74.72%)** | **74.48%** | **234s** | 9 / 86 | **21.0%** | **4** | **86** |
-| **Arm B** | Aging Evolution Baseline | 72.74% | 72.71% | N/A | 2 / 3 | 66.7% | 2 | 0 |
-| **Arm G** | Thompson-Sampling Contextual Bandit | 72.32% | 72.31% | N/A | 6 / 6 | 100.0% | 1 | 0 |
-| **Arm E** | LLM Raw In-Context History Ablation | 72.14% | 72.11% | N/A | 2 / 6 | 33.3% | 2 | 6 |
-| **Arm A** | Random Search Baseline | 66.66% | 66.68% | N/A | 2 / 3 | 66.7% | 1 | 0 |
-| **Arm C** | Stateless LLM (No-Memory Ablation) | 0.00% | 0.00% | N/A | 0 / 6 | 0.0% | 0 | 6 |
+> All reported test accuracies are strictly measured on the **untouched 10,000-image CIFAR-10 test set** using checkpointed models that strictly satisfy the calibrated constraints.
+> Time to $\tau$ measures cumulative wall-clock GPU seconds to reach the calibrated quality threshold ($\tau = 72.96\%$).
+
+| Arm | Method Description | Feasible Test Acc | Feasible Val Acc | GPU Time (s) | Total Proposals | Actually Trained | Feasible Count | Time to $\tau=72.96\%$ | Pareto Count |
+|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Arm D** | **Full NAS-Agent (Groq LLM + Surgery)** | **74.48%** | **74.72%** | **1,197s** | **80** | **14** | **7** | **234s** | **4** |
+| **Arm B** | Aging Evolution Baseline | 72.71% | 72.74% | 773s | 3 | 2 | 2 | N/A | 2 |
+| **Arm G** | Thompson-Sampling Contextual Bandit | 72.31% | 72.32% | 335s | 6 | 6 | 6 | N/A | 1 |
+| **Arm E** | LLM Raw In-Context History Ablation | 72.11% | 72.14% | 267s | 6 | 2 | 2 | N/A | 2 |
+| **Arm A** | Random Search Baseline | 66.68% | 66.66% | 610s | 3 | 2 | 2 | N/A | 1 |
+| **Arm C** | Stateless LLM (No-Memory Ablation) | 0.00% | 0.00% | 51s | 6 | 2 (NaN) | 0 | N/A | 0 |
 
 ### Arm D Discovered Pareto Frontier (Evaluated on Untouched Test Set)
 

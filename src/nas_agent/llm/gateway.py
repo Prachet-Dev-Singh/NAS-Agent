@@ -86,8 +86,8 @@ class LLMGateway:
 
         os.makedirs(self.cache_dir, exist_ok=True)
 
-    def _compute_cache_key(self, system_prompt: str, user_prompt: str) -> str:
-        payload = f"{self.provider}||{self.model}||{system_prompt}||{user_prompt}".encode("utf-8")
+    def _compute_cache_key(self, system_prompt: str, user_prompt: str, salt: Optional[str] = None) -> str:
+        payload = f"{self.provider}||{self.model}||{self.temperature}||{salt or ''}||{system_prompt}||{user_prompt}".encode("utf-8")
         return hashlib.sha256(payload).hexdigest()
 
     def _check_cache(self, cache_key: str) -> Optional[Tuple[str, int, int]]:
@@ -231,6 +231,8 @@ class LLMGateway:
         user_prompt: str,
         run_id: str = "run_default",
         store: Optional[CandidateStore] = None,
+        use_cache: bool = True,
+        salt: Optional[str] = None,
     ) -> Tuple[Proposal, Dict[str, Any]]:
         """Query LLM with caching, validation, and self-healing repair attempts.
 
@@ -239,8 +241,8 @@ class LLMGateway:
         Tuple[Proposal, audit_dict]
         """
         call_id = f"call_{uuid.uuid4().hex[:10]}"
-        cache_key = self._compute_cache_key(system_prompt, user_prompt)
-        cached = self._check_cache(cache_key)
+        cache_key = self._compute_cache_key(system_prompt, user_prompt, salt=salt)
+        cached = self._check_cache(cache_key) if use_cache else None
 
         cache_hit = False
         tokens_in, tokens_out = 0, 0
@@ -251,7 +253,8 @@ class LLMGateway:
             cache_hit = True
         else:
             raw_text, tokens_in, tokens_out = self._call_provider_raw(system_prompt, user_prompt)
-            self._save_cache(cache_key, raw_text, tokens_in, tokens_out)
+            if use_cache:
+                self._save_cache(cache_key, raw_text, tokens_in, tokens_out)
 
         repair_count = 0
         current_text = raw_text
