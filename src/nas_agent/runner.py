@@ -163,7 +163,7 @@ def run_experiment(
 
     config_thread = {
         "configurable": {"thread_id": run_id},
-        "recursion_limit": max(500, max_iterations * 5),
+        "recursion_limit": max(1000, max_iterations * 10),
     }
 
     try:

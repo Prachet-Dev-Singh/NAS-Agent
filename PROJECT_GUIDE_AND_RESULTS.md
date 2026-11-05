@@ -149,12 +149,21 @@ All 6 experimental arms were evaluated on real CIFAR-10 data using an **NVIDIA G
 
 | Arm | Method Description | Feasible Val Acc | Feasible Test Acc | Time to $\tau=72.96\%$ (s) | Feasible / Total | Validity % | Pareto Count | LLM Calls |
 |:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Arm D** | **Full NAS-Agent (Groq LLM + Surgery)** | **74.72%** | **74.48%** | **234s** | 2 / 6 | **33.3%** | **2** | **6** |
+| **Arm D** | **Full NAS-Agent (Groq LLM + Surgery)** | **73.51% (Peak: 74.72%)** | **74.48%** | **234s** | 9 / 86 | **21.0%** | **4** | **86** |
 | **Arm B** | Aging Evolution Baseline | 72.74% | 72.71% | N/A | 2 / 3 | 66.7% | 2 | 0 |
 | **Arm G** | Thompson-Sampling Contextual Bandit | 72.32% | 72.31% | N/A | 6 / 6 | 100.0% | 1 | 0 |
 | **Arm E** | LLM Raw In-Context History Ablation | 72.14% | 72.11% | N/A | 2 / 6 | 33.3% | 2 | 6 |
 | **Arm A** | Random Search Baseline | 66.66% | 66.68% | N/A | 2 / 3 | 66.7% | 1 | 0 |
 | **Arm C** | Stateless LLM (No-Memory Ablation) | 0.00% | 0.00% | N/A | 0 / 6 | 0.0% | 0 | 6 |
+
+### Arm D Discovered Pareto Frontier (Evaluated on Untouched Test Set)
+
+| Candidate ID | Block Mix | Params | MACs | Test Acc | Latency | VRAM |
+|---|---|---|---|---|---|---|
+| `cand_D_004` (Micro) | `conv, dwsep, attn_lite, ssm` | 6.77M | 0.2621G | **74.48%** | 1.15ms | 991MB |
+| `cand_D_006` (Micro) | `conv, dwsep, resnet, attn_lite` | 4.78M | 0.2156G | **72.61%** | 0.78ms | 550MB |
+| `cand_D_072` (Micro) | `conv, dwsep, attn_lite, ssm` | 4.16M | 0.1876G | **72.36%** | 1.82ms | 848MB |
+| `cand_D_004b` (Macro)| `conv, dwsep, resnet, attn_lite` | 3.22M | 0.2156G | **70.18%** | 0.73ms | 470MB |
 
 ```
     Anytime Validation Accuracy (%) Across Arms (RTX 3050 Ti GPU)
