@@ -112,7 +112,7 @@ The full 6-arm headline benchmark evaluated on real CIFAR-10 data under calibrat
 | **Arm G** | Thompson-Sampling Contextual Bandit | 72.31% | 72.32% | 335s | 6 | 6 | 6 | N/A | 1 |
 | **Arm E** | LLM Raw In-Context History Ablation | 72.11% | 72.14% | 267s | 6 | 2 | 2 | N/A | 2 |
 | **Arm A** | Random Search Baseline | 66.68% | 66.66% | 610s | 3 | 2 | 2 | N/A | 1 |
-| **Arm C** | Stateless LLM (No-Memory Ablation) | 0.00% | 0.00% | 51s | 6 | 2 (NaN) | 0 | N/A | 0 |
+| **Arm C** | Stateless LLM (No-Memory Ablation) | N/A (none feasible) | N/A (none feasible) | 51s | 6 | 2 (NaN) | 0 | N/A | 0 |
 
 ### Arm D Discovered Pareto Frontier (Evaluated on Untouched Test Set)
 
@@ -126,10 +126,10 @@ The full 6-arm headline benchmark evaluated on real CIFAR-10 data under calibrat
 ![Anytime Feasible Hypervolume](experiments/results/hypervolume_curves.png)
 
 ### Key Scientific Takeaways:
-1. **Arm D Discovers Top Generalizing Architecture (74.48% Test Accuracy):** Evaluated on the untouched 10,000-image CIFAR-10 test set, Arm D's top model (`cand_D_run_D__004`) achieved **74.48% test accuracy** (74.72% val), outperforming Random Search (+7.80%), Contextual Bandits (+2.17%), and Aging Evolution (+1.77%).
-2. **First and Only to Reach Convergence Threshold:** Arm D was the **only arm to reach quality threshold $\tau = 72.96\%$**, doing so in just **234 GPU-seconds**.
+1. **Arm D Discovers Top Generalizing Architecture (74.48% Test Accuracy):** Evaluated on the untouched 10,000-image CIFAR-10 test set, Arm D's top model (cand_D_run_D__004) achieved **74.48% test accuracy** (74.72% val) within an extended 80-proposal search run (14 trained), discovering stronger architectures than exploratory baseline pilots (Aging Evolution 72.71%, Contextual Bandit 72.31%, Random Search 66.68%).
+2. **First to Reach Target Convergence Threshold:** Arm D crossed the calibrated quality threshold $\tau = 72.96\%$ in **234 GPU-seconds** (Candidate 4).
 3. **Structured Memory vs. Raw History (Arm D vs. Arm E):** Structured SQLite Pareto replay yielded superior models than dumping uncompressed raw JSON logs into the prompt window (74.48% vs. 72.11% test accuracy).
-4. **Deterministic Failure of Memoryless LLMs (Arm C):** With zero memory of past trials, Groq repeated identical proposals across iterations (4 consecutive duplicate detections) and diverged, proving that structured state tracking is necessary for autonomous generative agents.
+4. **Failure Mode of Memoryless LLMs (Arm C):** With zero memory across trials, the LLM proposed architectures that triggered pre-fix floating point instabilities and duplicate proposals (0 feasible candidates), demonstrating that structured state tracking and feedback are necessary for viable architecture exploration.
 
 ---
 

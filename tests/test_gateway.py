@@ -49,6 +49,11 @@ def test_gateway_disk_caching():
         assert audit2["cache_hit"] is True
         assert prop2.model_dump() == prop1.model_dump()
 
+        # Query with different seed or salt should be cache miss
+        gw_seed99 = LLMGateway(provider="mock", cache_dir=tmpdir, seed=99)
+        prop3, audit3 = gw_seed99.query_proposal(sys_p, user_p, run_id="r1")
+        assert audit3["cache_hit"] is False
+
 
 def test_gateway_audit_logging():
     """Verify every query is logged to the SQLite llm_calls table."""

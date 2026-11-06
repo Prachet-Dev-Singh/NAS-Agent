@@ -71,6 +71,7 @@ class LLMGateway:
         cache_dir: str = "experiments/llm_cache",
         max_repair_attempts: int = 3,
         temperature: float = 0.7,
+        seed: Optional[int] = None,
         max_retries: int = 5,
         base_backoff_sec: float = 2.0,
     ) -> None:
@@ -80,14 +81,15 @@ class LLMGateway:
         self.cache_dir = cache_dir
         self.max_repair_attempts = max_repair_attempts
         self.temperature = temperature
+        self.seed = seed
         self.max_retries = max_retries
         self.base_backoff_sec = base_backoff_sec
-        self._mock_rng = random.Random(42)
+        self._mock_rng = random.Random(seed if seed is not None else 42)
 
         os.makedirs(self.cache_dir, exist_ok=True)
 
     def _compute_cache_key(self, system_prompt: str, user_prompt: str, salt: Optional[str] = None) -> str:
-        payload = f"{self.provider}||{self.model}||{self.temperature}||{salt or ''}||{system_prompt}||{user_prompt}".encode("utf-8")
+        payload = f"{self.provider}||{self.model}||{self.temperature}||{self.seed}||{salt or ''}||{system_prompt}||{user_prompt}".encode("utf-8")
         return hashlib.sha256(payload).hexdigest()
 
     def _check_cache(self, cache_key: str) -> Optional[Tuple[str, int, int]]:

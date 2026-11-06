@@ -27,8 +27,8 @@ Traditional Neural Architecture Search (NAS) suffers from two major extremes:
 ### The Solution: NAS-Agent
 **NAS-Agent** is an autonomous, resource-constrained Neural Architecture Search framework orchestrated by **LangGraph** and powered by open-source LLMs via **Groq** (`openai/gpt-oss-120b`). It enforces:
 * **Inductive Bias & Semantic Reasoning:** An LLM designs multi-stage architectures with domain knowledge of downsampling, receptive fields, and channel capacity.
-* **Surgical Micro-Operators:** Instead of training every candidate from scratch, the agent performs function-preserving checkpoint surgeries (SVD low-rank compression, zero-initialized layer widening, structured channel pruning) on near-feasible models, fine-tuning them in a fraction of the time.
-* **Equal-Compute Fair Evaluation:** All methods are strictly bounded by cumulative **GPU-seconds (wall-clock compute)** rather than candidate count, proving genuine sample and compute efficiency.
+* **Surgical Micro-Operators:** Instead of training every candidate from scratch, the agent performs weight-inheriting checkpoint surgeries (zero-initialized widening, block insertion, SVD low-rank compression, structured channel pruning) on near-feasible models, fine-tuning them in a fraction of the time.
+* **Hardware-Constrained Evaluation:** Architectures are evaluated under strict wall-clock GPU budgets, tracking cumulative GPU-seconds, proposal validity, and training cost across all arms.
 * **Structured SQLite Experience Replay:** Decoupled Pareto rewards ($r_{\text{hv}}$ for hypervolume improvement, $r_{\text{viol}}$ for constraint restoration) give the LLM structured memory of past trade-offs rather than overwhelming the prompt window with uncompressed text.
 
 ---
@@ -113,8 +113,8 @@ When an architecture sits near the Pareto frontier or exceeds budget caps, the a
   * **Success Rule:** A proposal is registered as a success if $\Delta \text{HV} > 0$ OR ($r_{\text{viol}} > 0$ with $\text{acc} \ge \text{min\_val\_acc}$).
 
 ### Phase 6: LLM Gateway, Schema Repair & Groq Integration
-* **Sub-300ms Inference via Groq:** Integrated `openai/gpt-oss-120b` running on Groq LPU hardware, yielding high reasoning depth and rapid response times.
-* **Deterministic Disk Caching:** SHA-256 caching over `(provider, model, system_prompt, user_prompt)` eliminates duplicate API expenditures.
+* **Fast Open-Source Inference via Groq:** Integrated `openai/gpt-oss-120b` running on Groq LPU hardware, enabling rapid iterative architecture proposal generation.
+* **Deterministic Disk Caching:** SHA-256 caching keyed on `(provider, model, temperature, seed, salt, system_prompt, user_prompt)` eliminates duplicate API expenditures while preventing cross-seed or stochastic collisions.
 * **Self-Healing Repair Loop:** If an LLM outputs malformed JSON or invalid parameters (e.g. `factor: 1.2` when schema requires $\ge 1.25$), the gateway catches the Pydantic `ValidationError`, constructs a feedback prompt with the exact error, and retries up to 3 times automatically.
 
 ### Phase 7: Closed-Loop LangGraph Architecture
@@ -129,7 +129,7 @@ Automated tools (`experiments/analyze.py`) that parse SQLite databases across al
 
 ## 3. The 6 Experimental Arms (Benchmark Matrix)
 
-To scientifically determine whether LLMs add genuine reasoning to architecture search, the blueprint specifies 6 distinct arms evaluated under the exact same GPU compute budget:
+To evaluate the role of LLM reasoning, memory, and Bayesian heuristics in architecture search, the blueprint specifies 6 distinct arms:
 
 | Arm | Name | Optimizer Mechanism | Memory Structure | Purpose |
 |:---:|:---|:---|:---|:---|
@@ -144,7 +144,7 @@ To scientifically determine whether LLMs add genuine reasoning to architecture s
 
 ## 4. Empirical Results & Head-to-Head Comparison
 
-All 6 experimental arms were evaluated on real CIFAR-10 data using an **NVIDIA GeForce RTX 3050 Ti Laptop GPU** with a **600 GPU-second budget**.
+The 6 experimental arms were evaluated on real CIFAR-10 data using an **NVIDIA GeForce RTX 3050 Ti Laptop GPU**, comparing an extended search trajectory for Arm D against exploratory baseline pilot runs.
 
 ### Headline Comparison Table
 
@@ -158,7 +158,7 @@ All 6 experimental arms were evaluated on real CIFAR-10 data using an **NVIDIA G
 | **Arm G** | Thompson-Sampling Contextual Bandit | 72.31% | 72.32% | 335s | 6 | 6 | 6 | N/A | 1 |
 | **Arm E** | LLM Raw In-Context History Ablation | 72.11% | 72.14% | 267s | 6 | 2 | 2 | N/A | 2 |
 | **Arm A** | Random Search Baseline | 66.68% | 66.66% | 610s | 3 | 2 | 2 | N/A | 1 |
-| **Arm C** | Stateless LLM (No-Memory Ablation) | 0.00% | 0.00% | 51s | 6 | 2 (NaN) | 0 | N/A | 0 |
+| **Arm C** | Stateless LLM (No-Memory Ablation) | N/A (none feasible) | N/A (none feasible) | 51s | 6 | 2 (NaN) | 0 | N/A | 0 |
 
 ### Arm D Discovered Pareto Frontier (Evaluated on Untouched Test Set)
 
@@ -171,15 +171,15 @@ All 6 experimental arms were evaluated on real CIFAR-10 data using an **NVIDIA G
 
 ```
     Anytime Validation Accuracy (%) Across Arms (RTX 3050 Ti GPU)
-    80% |                                      [Arm D: 74.72%]
-        |                                    .-'
-    70% |                    [Arm B: 72.74%]   [Arm G: 72.32%] [Arm E: 72.14%]
+    80% |                                              [Arm D: 74.72% (Test: 74.48%)]
+        |                                            .-'
+    70% |                    [Arm B: 72.74%]           [Arm G: 72.32%] [Arm E: 72.14%]
         |              .----'
     60% |    [Arm A: 66.66%]
         |
-     0% |____[Arm C: 0.00% - Collapsed due to duplicates & gate rejections]_______
-        0s                150s               300s               450s         600s
-                                    Cumulative GPU-Seconds
+    N/A |____[Arm C: N/A - 0 feasible (2 pre-fix NaNs, 4 duplicate cache responses)]____
+        0s                300s               600s               900s               1200s
+                                     Cumulative GPU-Seconds
 ```
 
 ### Deep Scientific Analysis of Results
@@ -197,7 +197,7 @@ All 6 experimental arms were evaluated on real CIFAR-10 data using an **NVIDIA G
 * In Arm E, raw JSON logs of previous candidates were appended directly into the prompt context. Without structured distillation, the LLM became cluttered with low-signal tokens, proposing duplicate and out-of-budget models and plateauing at **72.11% test accuracy**.
 * Arm D’s structured SQLite memory (providing compact Pareto tables, near-feasible checkpoints, and decoupled hypervolume/violation rewards) directed search attention efficiently, reaching **74.48% test accuracy**.
 
-#### 4. The Failure Mode of Memoryless LLMs (Arm C = 0.00%)
+#### 4. The Failure Mode of Memoryless LLMs (Arm C: 0 Feasible Candidates)
 * Arm C operated with zero memory across trials. Without historical feedback on which layer configurations violated hardware caps or induced training divergence, the LLM proposed invalid configurations that were rejected by the budget gate or encountered numerical instability.
 * This highlights that **LLMs require explicit state management, constraint awareness, and memory of past iterations to conduct viable neural architecture search**.
 
@@ -274,17 +274,23 @@ GROQ_API_KEY=gsk_your_actual_key_here
 
 ### 3. Run Experiments on GPU
 ```powershell
-# Run Arm D (Full NAS-Agent with Groq)
-python -m nas_agent.runner --arm D --provider groq --model openai/gpt-oss-120b --budget-seconds 600 --device cuda
+# Arm D: Full NAS-Agent (Extended Search, ~1200s budget)
+python -m nas_agent.runner --arm D --provider groq --model openai/gpt-oss-120b --budget-seconds 1200 --device cuda
 
-# Run Arm B (Aging Evolution Baseline)
+# Arm B: Aging Evolution Baseline (Pilot, 600s budget)
 python -m nas_agent.runner --arm B --budget-seconds 600 --device cuda
 
-# Run Arm G (Contextual Bandit)
-python -m nas_agent.runner --arm G --provider groq --model openai/gpt-oss-120b --budget-seconds 600 --device cuda
+# Arm G: Contextual Thompson Bandit (Pilot, 600s budget)
+python -m nas_agent.runner --arm G --budget-seconds 600 --device cuda
 
-# Run Arm A (Uniform Random Search)
+# Arm A: Uniform Random Search (Pilot, 600s budget)
 python -m nas_agent.runner --arm A --budget-seconds 600 --device cuda
+
+# Arm E: Raw In-Context History Ablation (Pilot, 600s budget)
+python -m nas_agent.runner --arm E --provider groq --model openai/gpt-oss-120b --budget-seconds 600 --device cuda
+
+# Arm C: Stateless LLM Ablation (Pilot, 600s budget)
+python -m nas_agent.runner --arm C --provider groq --model openai/gpt-oss-120b --budget-seconds 600 --device cuda
 ```
 
 ### 4. Compile Analysis & Generate Charts
@@ -321,7 +327,7 @@ This updates:
 > *"Traditional NAS methods like DARTS suffer from performance collapse and discretization gaps, while RL and genetic algorithms require thousands of GPU-hours training candidates from scratch with zero semantic understanding of layer interactions. An LLM possesses inductive reasoning over vision backbone design—understanding downsampling stages, channel capacity expansion, and where attention or SSM sequence mixing is computationally appropriate. By coupling the LLM with surgical weight-inheriting operators and strict static constraint gating, we established a viable 4-member Pareto frontier on CIFAR-10 within a commodity laptop GPU budget."*
 
 #### Q2: "How did you guarantee that candidate failures (OOM, NaNs, hangs) wouldn't crash the search?"
-> *"We implemented a **Process-Isolated Execution Harness**. Each candidate trains inside an independent OS process group with stdout/stderr redirection and a watchdog timer. If an architecture triggers a CUDA OOM or floating-point NaN, the worker catches the signal, atomically records partial metrics and tracebacks to `metrics.json`, and exits cleanly. The parent LangGraph loop reads the failure status, logs it to SQLite with zero wasted compute, and passes constraint violation feedback to the LLM for the next iteration."*
+> *"We implemented a **Process-Isolated Execution Harness**. Each candidate trains inside an independent OS process group with stdout/stderr redirection and a watchdog timer. If an architecture triggers a CUDA OOM or floating-point NaN, the worker catches the signal, atomically records partial metrics and tracebacks to `metrics.json`, and exits cleanly. The parent LangGraph loop reads the failure status, logs it to SQLite with its actual compute cost, and passes constraint violation feedback to the LLM for the next iteration."*
 
 #### Q3: "What were the biggest systems and performance bottlenecks you discovered and solved?"
 > *"Two major systems bugs were uncovered and resolved: First, an autograd graph explosion in Mamba-style SSMs when placed on high-resolution feature maps ($16\times 16=256$ tokens) caused sequential Python backward loops that took 3,262ms per batch. Profiling with cProfile revealed the bottleneck, and restricting SSMs to stages $\ge 2$ ($8\times 8$) accelerated batch training by **122x down to 26.7ms**. Second, in AMP fp16 mixed-precision, linear attention denominator inner products underflowed ($< 6\times 10^{-5}$), causing zero division and NaN losses in Epoch 6. Promoted the attention denominator to fp32 with a $10^{-4}$ clamp, completely stabilizing training."*
