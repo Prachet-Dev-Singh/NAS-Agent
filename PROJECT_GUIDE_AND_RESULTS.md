@@ -72,7 +72,7 @@ flowchart TD
   $$y = x + \text{out\_proj}(\text{mixer}(\text{in\_proj}(x)))$$
   This invariant ensures that residual dimensions remain clean, enabling mathematical function-preserving micro-surgeries.
 * **5 Supported Block Families:**
-  1. `conv`: Standard $3\times 3$ pre-activation convolutional residual block.
+  1. `conv`: Pre-activation residual block with two $3\times 3$ convolutions.
   2. `dwsep`: MobileNet-style inverted bottleneck depthwise-separable block.
   3. `resnet`: Classic Bottleneck/BasicBlock pre-activation residual block.
   4. `attn_lite`: Spatial linear self-attention running in $\mathcal{O}(N \cdot d^2)$ with ELU+1 feature maps.
@@ -199,7 +199,7 @@ The 6 experimental arms were evaluated on real CIFAR-10 data using an **NVIDIA G
 
 #### 4. The Failure Mode of Memoryless LLMs (Arm C: 0 Feasible Candidates)
 * Arm C operated with zero memory across trials. Without historical feedback on which layer configurations violated hardware caps or induced training divergence, the LLM proposed invalid configurations that were rejected by the budget gate or encountered numerical instability.
-* This highlights that **LLMs require explicit state management, constraint awareness, and memory of past iterations to conduct viable neural architecture search**.
+* This illustrates how stateless prompts without constraint memory or numerical guardrails are prone to repetitive proposals and early failure modes.
 
 #### 5. Bandit Exploration (Arm G) vs. Semantic Architecture Reasoning (Arm D)
 * The Thompson-Sampling Bandit (Arm G) maintained 100% feasibility (6/6 models trained) by balancing exploration across block families.
@@ -306,25 +306,23 @@ This updates:
 
 ## 8. Resume, Portfolio & Interview Guide
 
-### Defensible, Highly-Engineered Resume Bullets
+### Resume, Portfolio & Interview Presentation
 
-#### Project Title Block:
-**NAS-Agent: Autonomous Neural Architecture Search with LLM Reasoning & Process-Isolated Training**  
-*Python, PyTorch, LangGraph, Groq, CUDA, SQLite, NumPy* | [GitHub Link](https://github.com/Prachet-Dev-Singh/NAS-Agent)
-* Architected an autonomous closed-loop Neural Architecture Search (NAS) system orchestrated via **LangGraph**, discovering a 4-member Pareto frontier on CIFAR-10 under calibrated hardware constraints ($\le 8.38\text{M}$ params, $\le 1.28\text{ GMACs}$), achieving **74.48% held-out test accuracy**.
-* Engineered a **process-isolated PyTorch training harness** utilizing OS process groups (`CREATE_NEW_PROCESS_GROUP`), watchdog timers, and atomic JSON state emission, ensuring CUDA Out-Of-Memory (OOM) and gradient NaN faults never crash the parent search graph.
-* Diagnosed and resolved a **122x autograd training bottleneck** in hybrid Mamba State Space Models (SSMs) by profiling spatial token loop overhead and re-routing SSM sequence mixing to downsampled stages, slashing per-batch latency from 3,262ms to 26.7ms.
-* Eliminated floating-point underflow in mixed-precision (AMP fp16) linear attention by promoting denominator inner-products to fp32 and clamping epsilon, restoring 100% training stability across all runs.
-* Integrated **open-source LLMs (`openai/gpt-oss-120b`) via Groq** with strict Pydantic schema validation, automated self-healing repair, and **surgical weight-inheriting operators** (zero-init widening, identity block insertion, truncated SVD, and channel pruning) to adapt trained models in 4 epochs without retraining from scratch.
-* Implemented structured SQLite experience replay with **decoupled multi-objective rewards** ($r_{\text{hv}}$ hypervolume per GPU-second and $r_{\text{viol}}$ constraint restoration credit), guiding LLM proposals toward non-dominated Pareto trade-offs.
-* Developed a comprehensive **282-test automated unit and integration suite** across 9 modules, verifying exact parameter/MAC counters, mathematical function preservation, and harness error recovery with 100% pass rate.
+#### Defensible Resume Entry:
+**NAS-Agent: LLM-Driven Neural Architecture Search under Hardware Constraints** | [GitHub Link](https://github.com/Prachet-Dev-Singh/NAS-Agent)  
+*Python, PyTorch, LangGraph, Pydantic, SQLite, Groq (gpt-oss-120b), pytest*
+* Built a closed-loop NAS agent on LangGraph where an LLM proposes CNN/attention/Mamba architectures and weight-inheriting checkpoint edits; exact closed-form param/MAC counters reject over-budget proposals before any GPU time is spent (80 proposals, 14 trained).
+* Discovered a 4-model Pareto frontier on CIFAR-10 under calibrated caps ($\le 8.38\text{M}$ params, $\le 1.28\text{ GMACs}$, $\le 1.5\text{ GB}$ VRAM): best **74.48% held-out test accuracy** with 10k-image/8-epoch proxy training on a laptop RTX 3050 Ti; edited children fine-tune in 4 epochs vs 8 from scratch.
+* Engineered a process-isolated training harness (OS process groups, watchdog timers, atomic JSON status) that kept CUDA OOM, NaN, and hang failures from crashing the search; recovery paths covered by unit tests.
+* Profiled and fixed a **122x training bottleneck** in Mamba-style SSM blocks (3,262 to 26.7 ms/batch) and an fp16 underflow NaN in linear attention (verified by 500-step stress test, zero NaNs).
+* Built SQLite experience memory with decoupled Pareto rewards ($r_{\text{hv}}$ gain per GPU-second, $r_{\text{viol}}$ constraint-violation reduction) and a Pydantic repair loop for LLM outputs; 282 automated tests across 9 modules.
 
 ---
 
 ### Core Interview Questions & Model Answers
 
 #### Q1: "Why did you build an LLM-driven NAS system instead of standard RL or DARTS?"
-> *"Traditional NAS methods like DARTS suffer from performance collapse and discretization gaps, while RL and genetic algorithms require thousands of GPU-hours training candidates from scratch with zero semantic understanding of layer interactions. An LLM possesses inductive reasoning over vision backbone design—understanding downsampling stages, channel capacity expansion, and where attention or SSM sequence mixing is computationally appropriate. By coupling the LLM with surgical weight-inheriting operators and strict static constraint gating, we established a viable 4-member Pareto frontier on CIFAR-10 within a commodity laptop GPU budget."*
+> *"Traditional NAS methods like DARTS suffer from performance collapse and discretization gaps, while RL and genetic algorithms require thousands of GPU-hours training candidates from scratch with zero semantic understanding of layer interactions. An LLM possesses inductive reasoning over vision backbone design—understanding downsampling stages, channel capacity expansion, and where attention or SSM sequence mixing is computationally appropriate. By coupling the LLM with surgical weight-inheriting operators and strict static constraint gating, we established a viable 4-member Pareto frontier on CIFAR-10. "The engineering is the primary contribution: my benchmark compares an extended run of the full agent against exploratory baseline pilots, so the ranking is indicative, and the full multi-seed equal-budget cluster run is the next step.""*
 
 #### Q2: "How did you guarantee that candidate failures (OOM, NaNs, hangs) wouldn't crash the search?"
 > *"We implemented a **Process-Isolated Execution Harness**. Each candidate trains inside an independent OS process group with stdout/stderr redirection and a watchdog timer. If an architecture triggers a CUDA OOM or floating-point NaN, the worker catches the signal, atomically records partial metrics and tracebacks to `metrics.json`, and exits cleanly. The parent LangGraph loop reads the failure status, logs it to SQLite with its actual compute cost, and passes constraint violation feedback to the LLM for the next iteration."*

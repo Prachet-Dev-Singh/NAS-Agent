@@ -6,6 +6,8 @@
 
 ## 1. Overview & Research Goal
 
+> **Protocol Status:** The full multi-seed benchmark protocol (7,200s × 3 seeds) is designed for multi-GPU compute clusters; empirical results reported below reflect local exploratory pilots (600s) and an extended Arm D exploration trajectory (1,200s).
+
 Under an **equal GPU-seconds budget (7,200s per seed)**, does an LLM Optimizer equipped with a structured Pareto memory find higher-performing feasible architectures than:
 1. **Arm A:** Uniform Random Search
 2. **Arm B:** Regularized (Aging) Evolution (Real et al., 2019)
@@ -32,16 +34,16 @@ Under an **equal GPU-seconds budget (7,200s per seed)**, does an LLM Optimizer e
 ## 3. Search Space & Primitives
 
 All blocks satisfy the contract $y = x + \text{out\_proj}(\text{mixer}(\text{in\_proj}(x)))$ with identity zero-initialisation:
-- `conv`: Standard 3x3 depthwise/pointwise convolutional block.
+- `conv`: Pre-activation residual block with two 3x3 convolutions.
 - `dwsep`: Inverted bottleneck depthwise separable block.
 - `resnet`: Classic pre-activation residual block.
-- `attn_lite`: Lightweight single-head spatial reduction attention.
+- `attn_lite`: Spatial linear self-attention with ELU+1 feature maps.
 - `ssm`: Mamba-style selective state-space sequence mixer.
 
-### Surgical Micro-Operators (Function-Preserving Checkpoint Surgery)
+### Surgical Micro-Operators (Weight-Inheriting Checkpoint Surgery)
 - **SVD Low-Rank (`svd_lowrank`):** Truncated-SVD parameter reduction.
 - **L1 Channel Pruning (`prune_internal`):** Coupled internal channel trimming preserving stage boundaries.
-- **Zero-Init Widening (`widen_internal`):** Expands hidden dimension with exact mathematical function preservation ($\max |y - x| < 10^{-6}$).
+- **Zero-Init Widening (`widen_internal`):** Expands hidden dimension with exact mathematical function preservation ($\max |f_{\text{new}}(x) - f_{\text{old}}(x)| < 10^{-6}$).
 - **Zero-Init Insertion (`insert_block`):** Appends identity block at initialisation.
 - **Self-Distillation (`distill`):** Optional KD guidance from parent checkpoint ($L = \alpha T^2 \text{KL} + (1-\alpha)\text{CE}$).
 
@@ -55,7 +57,7 @@ All blocks satisfy the contract $y = x + \text{out\_proj}(\text{mixer}(\text{in\
 
 ### Setup
 ```bash
-git clone https://github.com/your-username/NAS-Agent.git
+git clone https://github.com/Prachet-Dev-Singh/NAS-Agent.git
 cd NAS-Agent
 pip install -e .
 ```
@@ -98,8 +100,6 @@ python -m nas_agent.runner --arm G --provider groq --budget-seconds 600 --device
 
 ## 6. Empirical Benchmark Results (NVIDIA RTX 3050 Ti GPU)
 
-### Headline Benchmark Results (NVIDIA RTX 3050 Ti GPU)
-
 The full 6-arm headline benchmark evaluated on real CIFAR-10 data under calibrated hardware constraints ($\le 8.38\text{M}$ params, $\le 1.28\text{ GMACs}$):
 
 > All reported test accuracies are strictly measured on the **untouched 10,000-image CIFAR-10 test set** using checkpointed models that strictly satisfy the calibrated constraints.
@@ -126,10 +126,10 @@ The full 6-arm headline benchmark evaluated on real CIFAR-10 data under calibrat
 ![Anytime Feasible Hypervolume](experiments/results/hypervolume_curves.png)
 
 ### Key Scientific Takeaways:
-1. **Arm D Discovers Top Generalizing Architecture (74.48% Test Accuracy):** Evaluated on the untouched 10,000-image CIFAR-10 test set, Arm D's top model (cand_D_run_D__004) achieved **74.48% test accuracy** (74.72% val) within an extended 80-proposal search run (14 trained), discovering stronger architectures than exploratory baseline pilots (Aging Evolution 72.71%, Contextual Bandit 72.31%, Random Search 66.68%).
+1. **Arm D Discovers Top Generalizing Architecture (74.48% Test Accuracy):** Evaluated on the untouched 10,000-image CIFAR-10 test set, Arm D's top model (`cand_D_004`) achieved **74.48% test accuracy** (74.72% val) within an extended 80-proposal search run (14 trained), discovering stronger architectures than exploratory baseline pilots (Aging Evolution 72.71%, Contextual Bandit 72.31%, Random Search 66.68%).
 2. **First to Reach Target Convergence Threshold:** Arm D crossed the calibrated quality threshold $\tau = 72.96\%$ in **234 GPU-seconds** (Candidate 4).
-3. **Structured Memory vs. Raw History (Arm D vs. Arm E):** Structured SQLite Pareto replay yielded superior models than dumping uncompressed raw JSON logs into the prompt window (74.48% vs. 72.11% test accuracy).
-4. **Failure Mode of Memoryless LLMs (Arm C):** With zero memory across trials, the LLM proposed architectures that triggered pre-fix floating point instabilities and duplicate proposals (0 feasible candidates), demonstrating that structured state tracking and feedback are necessary for viable architecture exploration.
+3. **Structured Memory vs. Raw History (Arm D vs. Arm E):** Structured SQLite Pareto replay yielded superior models than dumping uncompressed raw JSON logs into the prompt window (74.48% vs. 72.11% test accuracy; pilot exploratory comparison, not equal-compute).
+4. **Failure Mode of Memoryless LLMs (Arm C):** With zero memory across trials, the LLM proposed architectures that triggered pre-fix floating point instabilities and duplicate proposals (0 feasible candidates), demonstrating that unguided stateless queries require robust numerics and constraint-aware feedback to navigate search spaces.
 
 ---
 
@@ -153,7 +153,7 @@ Output files produced in `experiments/results/`:
 
 ---
 
-## 7. Repository Layout
+## 8. Repository Layout
 
 ```
 nas-agent/
@@ -201,7 +201,7 @@ nas-agent/
 │   └── eval/                       # Hypervolume and post-hoc benchmarking
 │       ├── hypervolume.py          # Exact 2D/3D hypervolume calculations
 │       └── final_benchmark.py      # Untouched test set and latency evaluation
-├── tests/                          # 281 unit, contract, and integration tests
+├── tests/                          # 282 unit, contract, and integration tests
 └── experiments/
     └── analyze.py                  # Statistical analysis and anytime curve generation
 ```
